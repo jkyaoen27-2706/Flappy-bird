@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Flappy Bird Fix</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0;
+            overflow: hidden; 
+            background-color: #70c5ce; 
+            font-family: Arial, sans-serif;
+            touch-action: none;
+            width: 100vw;
+            height: 100vh;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        canvas { 
+            display: block;
+            background: #70c5ce;
+        }
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        #score {
+            position: absolute;
+            top: 40px;
+            font-size: 50px;
+            color: white;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        .btn {
+            padding: 20px 50px;
+            font-size: 25px;
+            background: #e67e22;
+            color: white;
+            border: 4px solid white;
+            border-radius: 15px;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui">
+            <div id="score">0</div>
+            <div id="menu">
+                <h1 style="color: white; text-shadow: 2px 2px #000;">FLAPPY BIRD</h1>
+                <button class="btn" onclick="initGame()">PLAY NOW</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreDisplay = document.getElementById("score");
+        const menu = document.getElementById("menu");
+
+        // Set canvas size
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        let bird, pipes, score, frame, gameRunning;
+
+        function resetVariables() {
+            bird = {
+                x: 50,
+                y: canvas.height / 2,
+                size: 35,
+                velocity: 0,
+                gravity: 0.3,
+                lift: -6
+            };
+            pipes = [];
+            score = 0;
+            frame = 0;
+            gameRunning = false;
+            scoreDisplay.innerText = "0";
+        }
+
+        function initGame() {
+            resetVariables();
+            menu.classList.add("hidden");
+            gameRunning = true;
+            animate();
+        }
+
+        function spawnPipe() {
+            const gap = 180;
+            const minH = 50;
+            const topH = Math.random() * (canvas.height - gap - (minH * 2)) + minH;
+            pipes.push({
+                x: canvas.width,
+                top: topH,
+                bottom: canvas.height - topH - gap,
+                width: 60,
+                passed: false
+            });
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            menu.classList.remove("hidden");
+            document.querySelector('h1').innerText = "GAME OVER";
+            document.querySelector('.btn').innerText = "RETRY";
+        }
+
+        function animate() {
+            if (!gameRunning) return;
+
+            // Clear Screen
+            ctx.fillStyle = "#70c5ce";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Bird Physics
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+
+            // Draw Bird (Emoji)
+            ctx.font = bird.size + "px Arial";
+            ctx.fillText("🐦", bird.x, bird.y);
+
+            // Pipes
+            if (frame % 100 === 0) spawnPipe();
+            
+            for (let i = pipes.length - 1; i >= 0; i--) {
+                let p = pipes[i];
+                p.x -= 3;
+
+                // Draw Pipe
+                ctx.fillStyle = "#2ecc71";
+                ctx.strokeStyle = "#1b5e20";
+                ctx.lineWidth = 2;
+                
+                // Top
+                ctx.fillRect(p.x, 0, p.width, p.top);
+                ctx.strokeRect(p.x, 0, p.width, p.top);
+                // Bottom
+                ctx.fillRect(p.x, canvas.height - p.bottom, p.width, p.bottom);
+                ctx.strokeRect(p.x, canvas.height - p.bottom, p.width, p.bottom);
+
+                // Collision
+                if (bird.x + bird.size * 0.7 > p.x && bird.x < p.x + p.width) {
+                    if (bird.y - bird.size * 0.7 < p.top || bird.y > canvas.height - p.bottom) {
+                        gameOver();
+                    }
+                }
+
+                // Scoring
+                if (p.x + p.width < bird.x && !p.passed) {
+                    score++;
+                    scoreDisplay.innerText = score;
+                    p.passed = true;
+                }
+
+                // Cleanup
+                if (p.x + p.width < 0) pipes.splice(i, 1);
+            }
+
+            // Floor/Ceiling
+            if (bird.y > canvas.height || bird.y < 0) gameOver();
+
+            frame++;
+            requestAnimationFrame(animate);
+        }
+
+        // Controls
+        function jump() {
+            if (gameRunning) {
+                bird.velocity = bird.lift;
+            }
+        }
+
+        window.addEventListener("mousedown", jump);
+        window.addEventListener("touchstart", (e) => {
+            if (gameRunning) {
+                e.preventDefault();
+                jump();
+            }
+        }, {passive: false});
+
+        // Initial screen
+        resetVariables();
+    </script>
+</body>
+</html>
+
