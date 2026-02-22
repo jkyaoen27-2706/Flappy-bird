@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://www.google.com/search?q=https://jkyaoen27-2706.github.io/Flappy-bird/sitemap.xml
